@@ -187,7 +187,7 @@ app.get('/api/stats/hourly', async (req, res) => {
       MOD(CAST(EXTRACT(HOUR FROM CAST(date_send AS TIMESTAMP WITH TIME ZONE) AT TIME ZONE 'Asia/Seoul') AS INTEGER), 24) as hour,
       COUNT(*) as count
     FROM horn
-    WHERE date_send >= $1
+    WHERE date_send::timestamptz >= $1::timestamptz
   `;
   const params = [since];
 
@@ -211,7 +211,7 @@ app.get('/api/stats/category', async (req, res) => {
   const server = req.query.server;
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-  let query = `SELECT category, COUNT(*) as count FROM horn WHERE date_send >= $1`;
+  let query = `SELECT category, COUNT(*) as count FROM horn WHERE date_send::timestamptz >= $1::timestamptz`;
   const params = [since];
 
   if (server && server !== 'all') {
@@ -233,7 +233,7 @@ app.get('/api/stats/keywords', async (req, res) => {
   const server = req.query.server;
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-  let query = `SELECT character_name, message FROM horn WHERE date_send >= $1`;
+  let query = `SELECT character_name, message FROM horn WHERE date_send::timestamptz >= $1::timestamptz`;
   const params = [since];
 
   if (server && server !== 'all') {
@@ -285,7 +285,7 @@ app.get('/api/stats/party', async (req, res) => {
   const server = req.query.server;
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-  let query = `SELECT message, date_send FROM horn WHERE category = 'party' AND date_send >= $1`;
+  let query = `SELECT message, date_send FROM horn WHERE category = 'party' AND date_send::timestamptz >= $1::timestamptz`;
   const params = [since];
 
   if (server && server !== 'all') {
