@@ -353,8 +353,7 @@ app.get('/api/stats/horn-king', async (req, res) => {
         SELECT character_name, COUNT(*) as count
         FROM horn
         WHERE server_name = $1
-          AND date_send::timestamptz >= (NOW() AT TIME ZONE 'Asia/Seoul')::date::timestamptz
-          AND date_send::timestamptz < ((NOW() AT TIME ZONE 'Asia/Seoul')::date + 1)::timestamptz
+          AND date_send::timestamptz >= NOW() - INTERVAL '24 hours'
         GROUP BY character_name
         ORDER BY count DESC
         LIMIT 1
