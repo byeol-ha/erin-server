@@ -736,18 +736,22 @@
       <div class="server-btn" onclick="selectServer('류트')">
         <div class="server-btn-name">류트</div>
         <div class="server-btn-desc">Lute</div>
+        <div id="king-류트" class="server-btn-king" style="font-size:11px;color:var(--gold);margin-top:8px;"></div>
       </div>
       <div class="server-btn" onclick="selectServer('만돌린')">
         <div class="server-btn-name">만돌린</div>
         <div class="server-btn-desc">Mandolin</div>
+        <div id="king-만돌린" class="server-btn-king" style="font-size:11px;color:var(--gold);margin-top:8px;"></div>
       </div>
       <div class="server-btn" onclick="selectServer('하프')">
         <div class="server-btn-name">하프</div>
         <div class="server-btn-desc">Harp</div>
+        <div id="king-하프" class="server-btn-king" style="font-size:11px;color:var(--gold);margin-top:8px;"></div>
       </div>
       <div class="server-btn" onclick="selectServer('울프')">
         <div class="server-btn-name">울프</div>
         <div class="server-btn-desc">Wolf</div>
+        <div id="king-울프" class="server-btn-king" style="font-size:11px;color:var(--gold);margin-top:8px;"></div>
       </div>
     </div>
     <button class="landing-all-btn" onclick="selectServer('all')">전체 서버 보기</button>
@@ -951,6 +955,20 @@
   Chart.defaults.color = '#8891aa';
   Chart.defaults.font = { family: 'JetBrains Mono, Noto Sans KR, sans-serif', size: 11 };
 
+  // ── 거뿔 왕 로드 ──
+  async function loadHornKings() {
+    try {
+      const res = await fetch(`https://erin-server-production.up.railway.app/api/stats/horn-king`);
+      const data = await res.json();
+      ['류트', '만돌린', '하프', '울프'].forEach(server => {
+        const el = document.getElementById(`king-${server}`);
+        if (!el) return;
+        if (data[server]) {
+          el.innerHTML = `<div style="font-size:10px;color:var(--text3);margin-bottom:2px;">👑 오늘의 거뿔 왕</div>${data[server].masked}님 (${data[server].count}회)`;
+        }
+      });
+    } catch (e) {}
+  }
 
   // ── 서버 선택 랜딩 ──
   function selectServer(server) {
@@ -1451,6 +1469,8 @@
   setInterval(() => {
     if (document.getElementById('page-analysis').classList.contains('active')) loadAnalysis();
   }, 120000);
+
+  loadHornKings();
 
   // 초기 서버 연결 확인
   fetch(`${API}/api/stats/summary`)

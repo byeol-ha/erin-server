@@ -344,6 +344,38 @@ app.get('/api/stats/party', async (req, res) => {
 
   res.json({ total: rows.length, dungeons: dungeonList, memberPatterns });
 });
+// 거뿔 왕 (서버별 오늘 최다 발송자)
+app.get('/api/stats/horn-king', async (req, res) => {
+  try {
+    const kings = {};
+    for (const server of ['류트', '만돌린', '하프', '울프']) {
+      const result = await pool.query(`
+        SELECT character_name, COUNT(*) as count
+        FROM horn
+        WHERE server_name = $1
+          AND date_send::timestamptz >= (NOW() AT TIME ZONE 'Asia/Seoul')::date::timestamptz
+          AND date_send::timestamptz < ((NOW() AT TIME ZONE 'Asia/Seoul')::date + 1)::timestamptz
+        GROUP BY character_name
+        ORDER BY count DESC
+        LIMIT 1
+      `, [server]);
+      if (result.rows.length > 0) {
+        const name = result.rows[0].character_name;
+        const count = parseInt(result.rows[0].count);
+        const masked = name.length <= 2
+          ? name[0] + 'X'
+          : name.slice(0, 2) + 'X'.repeat(name.length - 2);
+        kings[server] = { masked, count };
+      } else {
+        kings[server] = null;
+      }
+    }
+    res.json(kings);
+  } catch (e) {
+    console.error('[거뿔 왕 오류]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // 전체 통계 요약
 app.get('/api/stats/summary', async (req, res) => {
