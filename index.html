@@ -60,12 +60,14 @@
 
     .nav-logo {
       font-family: 'Black Han Sans', sans-serif;
-      font-size: 18px;
+      font-size: 20px;
       color: var(--gold);
       text-shadow: 0 0 20px rgba(232,201,106,0.3);
-      margin-right: 32px;
+      margin-right: 40px;
       white-space: nowrap;
       cursor: pointer;
+      letter-spacing: -0.01em;
+      min-width: 180px;
     }
 
     .nav-links {
@@ -626,12 +628,149 @@
     .dungeon-recent-item{font-size:11px;color:var(--text3);background:var(--bg);border-radius:6px;padding:5px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .member-chart-wrap{position:relative;height:200px;}
     .party-total-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(91,141,238,0.1);border:1px solid rgba(91,141,238,0.2);border-radius:8px;padding:8px 16px;font-size:13px;color:var(--blue);margin-bottom:20px;}
+
+    /* ── 서버 선택 랜딩 ── */
+    .landing-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+    }
+
+    .landing-overlay.hidden { display: none; }
+
+    .landing-bg {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 40%, rgba(232,201,106,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .landing-content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .landing-title {
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: 52px;
+      color: var(--gold);
+      text-shadow: 0 0 60px rgba(232,201,106,0.3);
+      margin-bottom: 8px;
+      line-height: 1.1;
+    }
+
+    .landing-sub {
+      font-size: 14px;
+      color: var(--text3);
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 48px;
+    }
+
+    .landing-question {
+      font-size: 16px;
+      color: var(--text2);
+      margin-bottom: 24px;
+      font-weight: 500;
+    }
+
+    .server-btn-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      max-width: 360px;
+      margin: 0 auto 20px;
+    }
+
+    .server-btn {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 14px;
+      padding: 20px 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      color: var(--text2);
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+
+    .server-btn:hover {
+      border-color: var(--gold);
+      background: rgba(232,201,106,0.06);
+      color: var(--gold);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(232,201,106,0.1);
+    }
+
+    .server-btn-name {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .server-btn-desc {
+      font-size: 11px;
+      color: var(--text3);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .landing-all-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 24px;
+      color: var(--text3);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: 'Noto Sans KR', sans-serif;
+      margin-top: 8px;
+    }
+
+    .landing-all-btn:hover { color: var(--text2); border-color: var(--border2); }
   </style>
 </head>
 <body>
 
-<!-- 토스트 -->
+<!-- ── 서버 선택 랜딩 ── -->
+<div class="landing-overlay" id="landingOverlay">
+  <div class="landing-bg"></div>
+  <div class="landing-content">
+    <div class="landing-title">지금 에린에서는</div>
+    <div class="landing-sub">// 거대한 외침의 뿔피리 실시간 분석</div>
+    <div class="landing-question">어느 서버를 플레이하시나요?</div>
+    <div class="server-btn-grid">
+      <div class="server-btn" onclick="selectServer('류트')">
+        <div class="server-btn-name">류트</div>
+        <div class="server-btn-desc">Lute</div>
+      </div>
+      <div class="server-btn" onclick="selectServer('만돌린')">
+        <div class="server-btn-name">만돌린</div>
+        <div class="server-btn-desc">Mandolin</div>
+      </div>
+      <div class="server-btn" onclick="selectServer('하프')">
+        <div class="server-btn-name">하프</div>
+        <div class="server-btn-desc">Harp</div>
+      </div>
+      <div class="server-btn" onclick="selectServer('울프')">
+        <div class="server-btn-name">울프</div>
+        <div class="server-btn-desc">Wolf</div>
+      </div>
+    </div>
+    <button class="landing-all-btn" onclick="selectServer('all')">전체 서버 보기</button>
+  </div>
+</div>
 
+
+<!-- 토스트 -->
+<div class="toast" id="toast" onclick="scrollToTop()">↑ 새 메시지</div>
 
 <!-- ── 네비게이션 ── -->
 <nav>
@@ -819,7 +958,7 @@
 </div>
 
 <script>
-  const API = 'https://erin-server-production.up.railway.app';
+  const API = 'http://localhost:3000';
   let feedInterval = null;
   let seenKeys = new Set();
   let isScrolledDown = false;
@@ -828,6 +967,15 @@
 
   Chart.defaults.color = '#8891aa';
   Chart.defaults.font = { family: 'JetBrains Mono, Noto Sans KR, sans-serif', size: 11 };
+
+
+  // ── 서버 선택 랜딩 ──
+  function selectServer(server) {
+    document.getElementById('globalServer').value = server;
+    document.getElementById('landingOverlay').classList.add('hidden');
+    // 피드 자동 시작
+    startFeed();
+  }
 
   // ── 페이지 전환 ──
   function showPage(name) {

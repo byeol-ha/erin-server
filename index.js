@@ -187,7 +187,7 @@ app.get('/api/stats/hourly', async (req, res) => {
       MOD(CAST(EXTRACT(HOUR FROM CAST(date_send AS TIMESTAMP WITH TIME ZONE) AT TIME ZONE 'Asia/Seoul') AS INTEGER), 24) as hour,
       COUNT(*) as count
     FROM horn
-    WHERE date_send::timestamptz >= $1::timestamptz
+    WHERE date_send >= $1
   `;
   const params = [since];
 
@@ -211,7 +211,7 @@ app.get('/api/stats/category', async (req, res) => {
   const server = req.query.server;
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-  let query = `SELECT category, COUNT(*) as count FROM horn WHERE date_send::timestamptz >= $1::timestamptz`;
+  let query = `SELECT category, COUNT(*) as count FROM horn WHERE date_send >= $1`;
   const params = [since];
 
   if (server && server !== 'all') {
@@ -233,7 +233,7 @@ app.get('/api/stats/keywords', async (req, res) => {
   const server = req.query.server;
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-  let query = `SELECT character_name, message FROM horn WHERE date_send::timestamptz >= $1::timestamptz`;
+  let query = `SELECT character_name, message FROM horn WHERE date_send >= $1`;
   const params = [since];
 
   if (server && server !== 'all') {
@@ -342,7 +342,7 @@ app.get('/api/stats/party', async (req, res) => {
 // 전체 통계 요약
 app.get('/api/stats/summary', async (req, res) => {
   const total = await pool.query('SELECT COUNT(*) as count FROM horn');
-  const today = await pool.query(`SELECT COUNT(*) as count FROM horn WHERE date_send::timestamptz >= NOW() - INTERVAL '24 hours'`);
+  const today = await pool.query(`SELECT COUNT(*) as count FROM horn WHERE date_send >= NOW() - INTERVAL '24 hours'`);
   const oldest = await pool.query('SELECT MIN(date_send) as d FROM horn');
   const newest = await pool.query('SELECT MAX(date_send) as d FROM horn');
 
