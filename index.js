@@ -261,6 +261,12 @@ app.get('/api/stats/keywords', async (req, res) => {
       if (nicknames.has(w) || nicknames.has(raw)) return;
       if (/^[0-9]+$/.test(w)) return;
       if (/^[a-zA-Z]{1,2}$/.test(w)) return;
+      // 채널 표기 제거 (채널1, 채널7 등)
+      if (/^채널\d+$/.test(w)) return;
+      // 사람 수 패턴 제거 (1/4, 3명, 2자 등)
+      if (/^[0-9]+\/[0-9]+$/.test(raw)) return;
+      if (/^[0-9]+[명자인]$/.test(raw)) return;
+      if (/^[0-9]+\/[0-9]+[명]?$/.test(raw)) return;
       freq[w] = (freq[w] || 0) + 1;
     });
   });
