@@ -502,7 +502,6 @@ ${messages}
   "activeTime": "주로 활동하는 시간대",
   "mainActivity": "주요 활동"
 }`;
-}`;
 
     const result2 = await model.generateContent(prompt);
     const text = result2.response.text().replace(/```json|```/g, '').trim();
