@@ -549,7 +549,8 @@ async function start() {
     fetchAll();
   });
 
-  cron.schedule('*/10 * * * *', fetchAll);
+  cron.schedule('*/1 * * * *', fetchAll);
+console.log('⏰ 1분마다 자동 수집 스케줄 등록 완료');
   console.log('⏰ 10분마다 자동 수집 스케줄 등록 완료');
 }
 
