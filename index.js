@@ -87,14 +87,9 @@ async function fetchServer(serverName) {
 }
 
 async function fetchAll() {
-  const promises = SERVERS.map(async (server) => {
-    try {
-      await fetchServer(server);
-    } catch (e) {
-      console.error(`[${server}] 개별 수집 실패:`, e.message);
-    }
-  });
-  await Promise.all(promises);
+  console.log('📡 전 서버 데이터 동시 발굴 시작...');
+  // 🔥 모든 서버를 동시에 찌릅니다. 하나가 늦어져도 나머지는 수집됩니다.
+  await Promise.all(SERVERS.map(server => fetchServer(server)));
 }
 
 // ── API 엔드포인트 생략 (기존 코드와 동일하게 유지) ──
@@ -205,12 +200,14 @@ app.get('/api/stats/hall-of-fame', async (req, res) => {
 app.get('/api/stats/horn-king', async (req, res) => {
   try {
     const kings = {};
-    const promises = SERVERS.map(async (server) => {
+    // 🔥 루프 대신 병렬로 돌려야 서버별 속도 영향이 없습니다.
+    await Promise.all(SERVERS.map(async (server) => {
+      // 🔥 날짜 자르는 방식 대신, 한국 자정 시점을 정확히 계산해서 비교합니다.
       const result = await pool.query(`
         SELECT character_name, COUNT(*) as count 
         FROM horn 
         WHERE server_name = $1 
-          AND (date_send AT TIME ZONE 'Asia/Seoul')::date = (NOW() AT TIME ZONE 'Asia/Seoul')::date
+          AND date_send >= CURRENT_DATE AT TIME ZONE 'Asia/Seoul'
         GROUP BY character_name 
         ORDER BY count DESC 
         LIMIT 1
@@ -225,13 +222,9 @@ app.get('/api/stats/horn-king', async (req, res) => {
       } else {
         kings[server] = { masked: '조용한 에린', count: 0 };
       }
-    });
-
-    await Promise.all(promises);
+    }));
     res.json(kings);
-  } catch (e) { 
-    res.status(500).json({ error: e.message }); 
-  }
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 
