@@ -1575,17 +1575,17 @@
     
     // 🔥 요약 데이터도 함께 호출
     loadDailySummary(); 
-    loadHallOfFame(); //
+    loadHallOfFame();
+    loadHornkings(); //
 
     document.getElementById('analysisStatus').textContent = '로딩 중...';
 
     try {
       const [summary, hourly, category] = await Promise.all([
-        loadHornKings();
 
   fetch(`${API}/api/stats/summary`).then(r => r.json()),
         fetch(`${API}/api/stats/hourly?${qs}`).then(r => r.json()),
-        fetch(`${API}/api/stats/category?${qs}`).then(r => r.json()),
+        fetch(`${API}/api/stats/category?${qs}`).then(r => r.json())
       ]);
 
       renderSummary(summary);
