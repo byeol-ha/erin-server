@@ -59,19 +59,11 @@ function normalizeWord(w) { return NORMALIZE_MAP[w] || w; }
 
 async function fetchServer(serverName) {
   try {
-    // 🔥 KST 기준 '오늘' 날짜를 명시적으로 계산 (넥슨이 영국 시간 기준으로 어제 데이터를 주는 현상 완벽 방지)
-    const nowKST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
-    const dateStr = `${nowKST.getFullYear()}-${String(nowKST.getMonth() + 1).padStart(2, '0')}-${String(nowKST.getDate()).padStart(2, '0')}`;
-    
-    // 🔥 URL에 &date=오늘날짜 를 억지로 꽂아넣어 최신 데이터를 강제로 받아옵니다.
-    const url = `https://open.api.nexon.com/mabinogi/v1/horn-bugle-world/history?server_name=${encodeURIComponent(serverName)}&date=${dateStr}`;
+    // 🔥 넥슨 API 고장 내던 파라미터 제거! 가장 잘 돌던 순정 코드로 원상복구
+    const url = `https://open.api.nexon.com/mabinogi/v1/horn-bugle-world/history?server_name=${encodeURIComponent(serverName)}`;
     const res = await fetch(url, { headers: { 'x-nxopen-api-key': API_KEY } });
 
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      console.error(`[${serverName}] API 오류 HTTP ${res.status}`, JSON.stringify(errData));
-      return 0;
-    }
+    if (!res.ok) return 0;
 
     const data = await res.json();
     const items = data.horn_bugle_world_history || [];
@@ -87,10 +79,9 @@ async function fetchServer(serverName) {
         if (result.rowCount > 0) newCount++;
       } catch (e) {}
     }
-    if (newCount > 0) console.log(`[${serverName}] ${newCount}건 신규 저장`);
+    if (newCount > 0) console.log(`[${serverName}] ${newCount}건 신규 저장 완료!`);
     return newCount;
   } catch (e) {
-    console.error(`[${serverName}] 오류:`, e.message);
     return 0;
   }
 }
