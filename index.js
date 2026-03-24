@@ -206,7 +206,7 @@ app.get('/api/stats/horn-king', async (req, res) => {
   try {
     const kings = {};
     for (const server of SERVERS) {
-      cconst result = await pool.query(`SELECT character_name, COUNT(*) as count FROM horn WHERE server_name = $1 AND DATE(CAST(date_send AS TIMESTAMP WITH TIME ZONE) AT TIME ZONE 'Asia/Seoul') = CURRENT_DATE AT TIME ZONE 'Asia/Seoul' GROUP BY character_name ORDER BY count DESC LIMIT 1`, [server]);
+      const result = await pool.query(`SELECT character_name, COUNT(*) as count FROM horn WHERE server_name = $1 AND DATE(CAST(date_send AS TIMESTAMP WITH TIME ZONE) AT TIME ZONE 'Asia/Seoul') = CURRENT_DATE AT TIME ZONE 'Asia/Seoul' GROUP BY character_name ORDER BY count DESC LIMIT 1`, [server]);
       if (result.rows.length > 0) {
         const name = result.rows[0].character_name;
         kings[server] = { masked: name.length <= 2 ? name[0] + 'X' : name.slice(0, 2) + 'X'.repeat(name.length - 2), count: parseInt(result.rows[0].count) };
