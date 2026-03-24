@@ -98,21 +98,30 @@ async function fetchAll() {
 }
 
 // ── API 엔드포인트 생략 (기존 코드와 동일하게 유지) ──
+// ── 실시간 피드 API (원상복구 완료!) ──
 app.get('/api/feed', async (req, res) => {
   const limit = parseInt(req.query.limit) || 100;
   const { category, keyword, server, offset } = req.query;
-  let query = `SELECT message, date_send FROM horn WHERE category = 'party' AND message !~ '길드|길원|길모|성장' AND date_send >= $1`;
+  
+  let query = 'SELECT * FROM horn';
+  const params = [];
+  const conditions = [];
 
   if (server && server !== 'all') { params.push(server); conditions.push(`server_name = $${params.length}`); }
   if (category && category !== 'all') { params.push(category); conditions.push(`category = $${params.length}`); }
   if (keyword) { params.push(`%${keyword}%`); conditions.push(`(message ILIKE $${params.length} OR character_name ILIKE $${params.length})`); }
 
   if (conditions.length > 0) query += ' WHERE ' + conditions.join(' AND ');
-  params.push(limit); params.push(parseInt(offset) || 0);
+  params.push(limit); 
+  params.push(parseInt(offset) || 0);
   query += ` ORDER BY date_send DESC LIMIT $${params.length - 1} OFFSET $${params.length}`;
 
-  const result = await pool.query(query, params);
-  res.json({ items: result.rows, count: result.rows.length });
+  try {
+    const result = await pool.query(query, params);
+    res.json({ items: result.rows, count: result.rows.length });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.get('/api/stats/hourly', async (req, res) => {
@@ -353,11 +362,13 @@ app.get('/api/stats/keywords', async (req, res) => {
 });
 
 // ── 🔥 복구된 파티 모집 현황 API (교역 추가, 시간 데이터 포함) ──
+// ── 🔥 복구된 파티 모집 현황 API (길드 싹 빼기 & 1~3관/4관 분리 완료) ──
 app.get('/api/stats/party', async (req, res) => {
   const { server, days } = req.query;
   const since = new Date(Date.now() - (parseInt(days) || 1) * 24 * 60 * 60 * 1000).toISOString();
   
-  let query = `SELECT message, date_send FROM horn WHERE category = 'party' AND date_send >= $1`;
+  // 🔥 여기에 길드 배제 정규식이 들어가야 합니다!
+  let query = `SELECT message, date_send FROM horn WHERE category = 'party' AND message !~ '길드|길원|길모|성장' AND date_send >= $1`;
   const params = [since];
   
   if (server && server !== 'all') { 
@@ -369,7 +380,6 @@ app.get('/api/stats/party', async (req, res) => {
   try {
     const result = await pool.query(query, params);
     
-    // 🔥 상자를 2개로 완전히 분리했습니다!
     const dungeons = {
       '브리레흐 (1~3관)': { count: 0, recent: [], color: 'blue' },
       '브리레흐 (4관)': { count: 0, recent: [], color: 'bri4' },
@@ -384,7 +394,6 @@ app.get('/api/stats/party', async (req, res) => {
       let key = '기타';
       const msg = r.message;
       
-      // 🔥 4관을 먼저 빼내어 독립시키고, 나머지를 1~3관으로 모읍니다.
       if (/4관/.test(msg)) key = '브리레흐 (4관)';
       else if (/브리|브레|1[~-]3관?/.test(msg)) key = '브리레흐 (1~3관)';
       else if (/크롬|크일|크쉬|빠스/.test(msg)) key = '크롬바스';
