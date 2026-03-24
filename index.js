@@ -413,6 +413,48 @@ app.get('/api/stats/party', async (req, res) => {
 
 // ─── (여기서부터 복사) ───
 
+// ── 🌤️ AI 에린 기상캐스터 API ──
+let aiWeatherCache = { time: 0, data: {} };
+
+app.get('/api/stats/lobby-weather', async (req, res) => {
+  const server = req.query.server || 'all';
+  const now = Date.now();
+  
+  // 🔥 AI API 요금 폭탄 방지용 캐싱 (10분에 한 번만 갱신)
+  if (now - aiWeatherCache.time < 10 * 60 * 1000 && aiWeatherCache.data[server]) {
+    return res.json({ weather: aiWeatherCache.data[server] });
+  }
+  
+  if (!genAI) return res.json({ weather: "현재 에린은 평화롭습니다." });
+
+  try {
+    let query = `SELECT message FROM horn ORDER BY date_send DESC LIMIT 60`;
+    const params = [];
+    if (server !== 'all') {
+      query = `SELECT message FROM horn WHERE server_name = $1 ORDER BY date_send DESC LIMIT 60`;
+      params.push(server);
+    }
+    const result = await pool.query(query, params);
+    const messages = result.rows.map(r => r.message).join('\n');
+
+    const prompt = `너는 마비노기 기상캐스터야. 다음 최근 거뿔 60개를 보고 현재 서버 분위기를 재밌고 센스있게 딱 '한 줄'로 요약해. (예시: 현재 류트 서버는 '나이트 브링어' 매물 눈치싸움과 '브리레흐 4관' 구인으로 매우 뜨겁습니다!)
+    [최근 거뿔]
+    ${messages}`;
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const aiResult = await model.generateContent(prompt);
+    let weatherText = aiResult.response.text().trim().replace(/^["']|["']$/g, '');
+
+    if(!aiWeatherCache.data) aiWeatherCache.data = {};
+    aiWeatherCache.data[server] = weatherText;
+    aiWeatherCache.time = now;
+
+    res.json({ weather: weatherText });
+  } catch(e) {
+    res.json({ weather: "마나 흐름이 불안정하여 날씨를 파악할 수 없습니다." });
+  }
+});
+
 // ── 💰 거뿔 시세 발골기 (Market API) ──
 app.get('/api/stats/market', async (req, res) => {
   const { server, days } = req.query;

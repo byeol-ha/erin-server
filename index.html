@@ -44,6 +44,26 @@
       z-index: 0;
     }
 
+   /* ── 🏠 로비 전용 스타일 ── */
+    .weather-card { background: linear-gradient(135deg, rgba(184,134,11,0.08) 0%, rgba(124,58,237,0.08) 100%); border: 1px solid rgba(184,134,11,0.2); border-radius: 14px; padding: 20px 24px; margin-bottom: 16px; font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.5; display: flex; gap: 12px; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
+    .weather-icon { font-size: 28px; }
+    .lobby-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+    @media (max-width: 768px) { .lobby-grid { grid-template-columns: 1fr; } }
+    .lobby-keywords { display: flex; flex-direction: column; gap: 8px; }
+    .lobby-kw-item { display: flex; align-items: center; justify-content: space-between; background: var(--surface2); padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 700; color: var(--text); }
+    .lobby-kw-rank { color: var(--gold); font-family: 'JetBrains Mono', monospace; font-size: 14px; margin-right: 8px; }
+    .lobby-kw-count { font-size: 11px; color: var(--text3); font-family: 'JetBrains Mono', monospace; font-weight: 400; }
+    .lobby-dungeons { display: flex; flex-direction: column; gap: 10px; }
+    .lobby-dg-item { display: flex; flex-direction: column; gap: 4px; }
+    .lobby-dg-header { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--text2); }
+    .lobby-dg-count { color: var(--text3); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+    .lobby-dg-track { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .lobby-dg-fill { height: 100%; border-radius: 3px; background: var(--gold); transition: width 0.5s ease; }
+    .lobby-speaker { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 8px; padding: 10px 0; }
+    .lobby-speaker-icon { font-size: 40px; margin-bottom: 4px; }
+    .lobby-speaker-name { font-size: 18px; font-weight: 900; color: var(--text); }
+    .lobby-speaker-count { font-size: 13px; color: var(--gold); font-weight: 700; background: rgba(184,134,11,0.1); padding: 4px 12px; border-radius: 20px; }
+
     /* ── 거뿔 거래 시세 ── */
 .market-list { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
 .market-item { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); transition: background 0.15s; }
@@ -1163,9 +1183,36 @@
       <div class="page-sub">// 각 탭의 핵심 정보만 빠르게 훑어보세요</div>
     </div>
     
-    <div class="two-col">
+    <div class="weather-card" id="lobbyWeather">
+      <div class="loading-row"><div class="spinner"></div> AI가 에린의 날씨를 관측 중입니다...</div>
+    </div>
+
+    <div class="lobby-grid">
+      <div class="chart-section" style="margin-bottom:0; padding:20px;">
+        <div class="section-title">🔥 실시간 핫이슈</div>
+        <div id="lobbyKeywords" class="lobby-keywords">
+          <div class="loading-row"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <div class="chart-section" style="margin-bottom:0; padding:20px;">
+        <div class="section-title">⚔️ 파티 신호등</div>
+        <div id="lobbyDungeons" class="lobby-dungeons">
+          <div class="loading-row"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <div class="chart-section" style="margin-bottom:0; padding:20px;">
+        <div class="section-title">👑 오늘의 스피커</div>
+        <div id="lobbySpeaker" class="lobby-speaker">
+          <div class="loading-row"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col" style="margin-top: 16px;">
       <div class="chart-section">
-        <div class="section-title" onclick="showPage('feed')" style="cursor:pointer;">📯 방금 올라온 거뿔 (실시간) 〉</div>
+        <div class="section-title" onclick="showPage('feed')" style="cursor:pointer;">📯 방금 올라온 거뿔 〉</div>
         <div id="lobbyFeed" style="display:flex; flex-direction:column; gap:8px;">
           <div class="loading-row"><div class="spinner"></div> 거뿔 대기 중...</div>
         </div>
@@ -1495,6 +1542,7 @@
     
     // 🔥 괄호 감옥 탈출! 이제 서버를 바꾸면 시세 탭도 바로바로 자동 새로고침됩니다.
     if (document.getElementById('page-market') && document.getElementById('page-market').classList.contains('active')) loadMarket();
+  updateLobbyData();
   }
 
   function getServer() { return document.getElementById('globalServer').value; }
@@ -2187,7 +2235,61 @@
     if (document.getElementById('page-market') && document.getElementById('page-market').classList.contains('active')) loadMarket(); // 🔥 시세 탭 추가
   }, 120000);
 
+// ── 🏠 로비(라운지) 데이터 업데이트 ──
+  async function updateLobbyData() {
+    const server = getServer();
+
+    // 1. 급상승 키워드
+    fetch(`${API}/api/stats/keywords?server=${server}&days=1&category=all`)
+      .then(r => r.json())
+      .then(data => {
+        const kws = (data.keywords || []).slice(0, 5);
+        document.getElementById('lobbyKeywords').innerHTML = kws.length ? kws.map((kw, i) => `
+          <div class="lobby-kw-item"><span class="lobby-kw-rank">${i+1}</span><span style="flex:1">${kw.word}</span><span class="lobby-kw-count">${kw.count}건</span></div>
+        `).join('') : '<div class="empty-state">데이터 대기중</div>';
+      });
+
+    // 2. 파티 신호등
+    fetch(`${API}/api/stats/party?server=${server}&days=1`)
+      .then(r => r.json())
+      .then(data => {
+        const dgs = (data.dungeons || []).filter(d => d.count > 0).sort((a,b) => b.count - a.count).slice(0, 4);
+        const max = dgs.length ? Math.max(...dgs.map(d=>d.count)) : 1;
+        const colors = { 'blue':'#2563eb', 'bri4':'#818cf8', 'red':'#dc2626', 'teal':'#0d9488', 'purple':'#7c3aed', 'gold':'#b8860b', 'etc':'#4d5470' };
+        document.getElementById('lobbyDungeons').innerHTML = dgs.length ? dgs.map(d => `
+          <div class="lobby-dg-item">
+            <div class="lobby-dg-header"><span>${d.name}</span><span class="lobby-dg-count">${d.count}건</span></div>
+            <div class="lobby-dg-track"><div class="lobby-dg-fill" style="width:${Math.round(d.count/max*100)}%; background:${colors[d.color]||'#b8860b'}"></div></div>
+          </div>
+        `).join('') : '<div class="empty-state">파티 대기중</div>';
+      });
+
+    // 3. 오늘의 스피커
+    fetch(`${API}/api/stats/horn-king`)
+      .then(r => r.json())
+      .then(data => {
+        const srv = server === 'all' ? '류트' : server;
+        const king = data[srv];
+        document.getElementById('lobbySpeaker').innerHTML = king ? `
+          <div class="lobby-speaker-icon">👑</div>
+          <div class="lobby-speaker-name">${king.masked} 님</div>
+          <div class="lobby-speaker-count">오늘 ${king.count}회 발사</div>
+        ` : '<div class="empty-state">집계중</div>';
+      });
+
+    // 4. AI 에린 기상캐스터
+    document.getElementById('lobbyWeather').innerHTML = '<div class="loading-row"><div class="spinner"></div> AI가 에린의 날씨를 관측 중입니다...</div>';
+    fetch(`${API}/api/stats/lobby-weather?server=${server}`)
+      .then(r => r.json())
+      .then(data => {
+        document.getElementById('lobbyWeather').innerHTML = `<div class="weather-icon">🌤️</div><div>${data.weather}</div>`;
+      }).catch(() => {
+        document.getElementById('lobbyWeather').innerHTML = `<div class="weather-icon">🌧️</div><div>마나 흐름이 불안정하여 날씨를 파악할 수 없습니다.</div>`;
+      });
+  }
+
   // 초기 실행
+  updateLobbyData();
   loadHornKings();
 
   fetch(`${API}/api/stats/summary`)
