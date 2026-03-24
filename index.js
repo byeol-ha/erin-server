@@ -354,6 +354,9 @@ app.get('/api/stats/keywords', async (req, res) => {
         if (w.includes('삽니다') || w.includes('팝니다') || w.includes('구매') || w.includes('판매') || w.includes('구합')) return;
         if (w.includes('채널')) return; // '채널' 글자가 들어간 모든 단어 사살
         
+        // 🔥 4차 핵폭격: 구구, 있음, 50있 등 거슬리는 단어 완벽 차단!
+        if (w.includes('구구') || w.includes('있음') || /[0-9]+있/.test(w) || /^[0-9]+-$/.test(w)) return;
+        
         freq[w] = (freq[w] || 0) + 1;
       });
     });
@@ -362,13 +365,13 @@ app.get('/api/stats/keywords', async (req, res) => {
 });
 
 // ── 🔥 복구된 파티 모집 현황 API (교역 추가, 시간 데이터 포함) ──
-// ── 🔥 복구된 파티 모집 현황 API (길드 싹 빼기 & 1~3관/4관 분리 완료) ──
+// ── 🔥 복구된 파티 모집 현황 API (길드 싹 빼기 & 중복 파티장 제거 완료) ──
 app.get('/api/stats/party', async (req, res) => {
   const { server, days } = req.query;
   const since = new Date(Date.now() - (parseInt(days) || 1) * 24 * 60 * 60 * 1000).toISOString();
   
-  // 🔥 여기에 길드 배제 정규식이 들어가야 합니다!
-  let query = `SELECT message, date_send FROM horn WHERE category = 'party' AND message !~ '길드|길원|길모|성장' AND date_send >= $1`;
+  // 🔥 중복 제거를 위해 character_name(닉네임)을 추가로 불러옵니다!
+  let query = `SELECT character_name, message, date_send FROM horn WHERE category = 'party' AND message !~ '길드|길원|길모|성장' AND date_send >= $1`;
   const params = [since];
   
   if (server && server !== 'all') { 
@@ -390,6 +393,8 @@ app.get('/api/stats/party', async (req, res) => {
       '기타': { count: 0, recent: [], color: 'etc' }
     };
     
+    const seenParty = new Set(); // 🔥 중복 파티 방지용 세트 (기억 장치)
+
     result.rows.forEach(r => {
       let key = '기타';
       const msg = r.message;
@@ -401,13 +406,21 @@ app.get('/api/stats/party', async (req, res) => {
       else if (/몽라|몽몽라|몽환/.test(msg)) key = '몽환의 라비';
       else if (/필발|왕복|필리아|코르|발레스|켈발|항교|교역/.test(msg)) key = '교역';
       
+      // 🔥 핵심 로직: "닉네임 + 던전명" 조합이 이미 기억 장치에 있다면 카운트 무시!
+      const dupKey = `${r.character_name}_${key}`;
+      if (seenParty.has(dupKey)) return; 
+      seenParty.add(dupKey); // 처음 보는 파티장이면 기억 장치에 등록
+
       dungeons[key].count++;
-      if (dungeons[key].recent.length < 3) {
+      if (dungeons[key].recent.length < 5) {
         dungeons[key].recent.push({ message: msg, date: r.date_send });
       }
     });
     
-    res.json({ total: result.rows.length, dungeons: Object.entries(dungeons).map(([name, info]) => ({ name, ...info })) });
+    // 🔥 뻥튀기 거뿔이 제거된 '진짜 순수 파티 수'를 다시 계산
+    const realTotal = Object.values(dungeons).reduce((sum, d) => sum + d.count, 0);
+    
+    res.json({ total: realTotal, dungeons: Object.entries(dungeons).map(([name, info]) => ({ name, ...info })) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
