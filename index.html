@@ -2161,118 +2161,62 @@
       const cardsWrap = document.getElementById('blackMarketCards');
 
       if (Object.keys(data).length === 0) {
-        chartWrap.innerHTML = '<div class="empty-state">데이터가 부족합니다</div>';
-        cardsWrap.innerHTML = '<div class="empty-state">최근 거래 내역이 없습니다</div>';
+        if(chartWrap) chartWrap.innerHTML = '<div class="empty-state">데이터가 부족합니다</div>';
+        if(cardsWrap) cardsWrap.innerHTML = '<div class="empty-state">최근 거래 내역이 없습니다</div>';
         return;
       }
 
-      cardsWrap.innerHTML = Object.entries(data).sort((a,b)=>b[1].count - a[1].count).map(([name, info]) => {
-        
-        // '전체 서버'일 때만 각 서버별 평균 뱃지 생성
-        const isAllServer = getServer() === 'all';
-        let serverAvgsHtml = '';
-        if (isAllServer && info.serverAvgs) {
-           serverAvgsHtml = `<div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">` + 
-             Object.entries(info.serverAvgs).map(([srv, avg]) => 
-               `<span style="background:var(--surface); border:1px solid var(--border2); padding:3px 8px; border-radius:6px; font-size:11px; color:var(--text2);">
-                  ${srv} <strong style="color:var(--gold2);">${avg.toLocaleString()}</strong>숲
-                </span>`
-             ).join('') + `</div>`;
-        }
-
-        // 히스토리 HTML 생성 (최근 20개까지만 보여줌)
-        const historyHtml = info.history.slice(0, 20).map(h => {
-          const timeStr = new Date(h.time).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-          // 🔥 undefined 방어: API에서 닉네임이 누락되면 원본 메시지에서 추출
-          const charName = h.character || h.message.split(':')[0].trim() || '익명';
-          const serverBadge = h.server ? `<span class="badge badge-server" style="font-size:9px; padding:1px 5px; margin-left:4px;">${h.server}</span>` : '';
+      if(cardsWrap) {
+        cardsWrap.innerHTML = Object.entries(data).sort((a,b)=>b[1].count - a[1].count).map(([name, info]) => {
           
-          return `<div style="font-size:12px; color:var(--text2); margin-top:8px; padding-top:8px; border-top:1px dashed var(--border);">
-            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-              <div><span style="color:var(--gold2); font-weight:bold;">👤 ${charName}</span>${serverBadge}</div>
-              <span style="color:var(--text3); font-size:10px;">${timeStr}</span>
+          const isAllServer = getServer() === 'all';
+          let serverAvgsHtml = '';
+          if (isAllServer && info.serverAvgs) {
+             serverAvgsHtml = `<div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">` + 
+               Object.entries(info.serverAvgs).map(([srv, avg]) => 
+                 `<span style="background:var(--surface); border:1px solid var(--border2); padding:3px 8px; border-radius:6px; font-size:11px; color:var(--text2);">
+                    ${srv} <strong style="color:var(--gold2);">${avg.toLocaleString()}</strong>숲
+                  </span>`
+               ).join('') + `</div>`;
+          }
+
+          const historyHtml = info.history.slice(0, 20).map(h => {
+            const timeStr = new Date(h.time).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+            const charName = h.character || h.message.split(':')[0].trim() || '익명';
+            const serverBadge = h.server ? `<span class="badge badge-server" style="font-size:9px; padding:1px 5px; margin-left:4px;">${h.server}</span>` : '';
+            
+            return `<div style="font-size:12px; color:var(--text2); margin-top:8px; padding-top:8px; border-top:1px dashed var(--border);">
+              <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                <div><span style="color:var(--gold2); font-weight:bold;">👤 ${charName}</span>${serverBadge}</div>
+                <span style="color:var(--text3); font-size:10px;">${timeStr}</span>
+              </div>
+              <div style="line-height:1.4; word-break:break-all;">📯 ${h.message}</div>
+            </div>`;
+          }).join('');
+
+          return `
+          <div style="flex:1; min-width:320px; max-width:100%; background:var(--surface2); border:1px solid var(--border); padding:18px; border-radius:12px; cursor:pointer; display:flex; flex-direction:column;" 
+               onclick="const el = this.querySelector('.bm-history'); el.style.display = el.style.display === 'none' ? 'block' : 'none'">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div>
+                <div style="font-weight:900; font-size:16px; color:var(--text);">🔎 ${name}</div>
+                ${serverAvgsHtml}
+              </div>
+              <div style="text-align:right;">
+                <div style="color:var(--gold); font-weight:900; font-family:'JetBrains Mono', monospace; font-size:20px;">${info.avg.toLocaleString()}숲</div>
+                <div style="font-size:11px; color:var(--text3); margin-top:4px;">최근 ${info.count}건 ▼</div>
+              </div>
             </div>
-            <div style="line-height:1.4; word-break:break-all;">📯 ${h.message}</div>
+            <div class="bm-history" style="display:none; margin-top:12px; max-height: 250px; overflow-y: auto; padding-right:8px;">
+              ${historyHtml}
+            </div>
           </div>`;
         }).join('');
-
-        return `
-        <div style="flex:1; min-width:320px; max-width:100%; background:var(--surface2); border:1px solid var(--border); padding:18px; border-radius:12px; cursor:pointer; display:flex; flex-direction:column;" 
-             onclick="const el = this.querySelector('.bm-history'); el.style.display = el.style.display === 'none' ? 'block' : 'none'">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <div>
-              <div style="font-weight:900; font-size:16px; color:var(--text);">🔎 ${name}</div>
-              ${serverAvgsHtml}
-            </div>
-            <div style="text-align:right;">
-              <div style="color:var(--gold); font-weight:900; font-family:'JetBrains Mono', monospace; font-size:20px;">${info.avg.toLocaleString()}숲</div>
-              <div style="font-size:11px; color:var(--text3); margin-top:4px;">최근 ${info.count}건 ▼</div>
-            </div>
-          </div>
-          <!-- 🔥 높이 제한(max-height)과 스크롤(overflow-y) 추가로 UI 깔끔하게! -->
-          <div class="bm-history" style="display:none; margin-top:12px; max-height: 250px; overflow-y: auto; padding-right:8px;">
-            ${historyHtml}
-          </div>
-        </div>`;
-      }).join('');
-
-        return `
-        <div style="flex:1; min-width:280px; background:var(--surface2); border:1px solid var(--border); padding:12px 16px; border-radius:12px; cursor:pointer;" 
-             onclick="const el = this.querySelector('.bm-history'); el.style.display = el.style.display === 'none' ? 'block' : 'none'">
-          <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-            <div style="font-weight:900; font-size:15px; color:var(--text);">🔎 ${name}</div>
-            <div style="text-align:right;">
-              <span style="color:var(--gold); font-weight:900; font-family:'JetBrains Mono', monospace; font-size:18px;">${info.avg}숲</span>
-              <span style="font-size:11px; color:var(--text3); margin-left:4px;">최근 ${info.count}건 ▼</span>
-            </div>
-          </div>
-          <div class="bm-history" style="display:none; margin-top:8px;">
-            ${historyHtml}
-          </div>
-        </div>`;
-      }).join('');
-
-      const topItems = Object.entries(data).sort((a,b)=>b[1].count - a[1].count).slice(0, 2);
-      const colors = ['#dc2626', '#7c3aed'];
-
-      chartWrap.innerHTML = '<canvas id="blackMarketCanvas"></canvas>';
-      if (blackMarketChart) blackMarketChart.destroy();
-
-      // 🔥 시간 포맷 에러 해결 (간단한 문자열로 변환)
-      const allLabels = new Set();
-      topItems.forEach(([name, info]) => {
-          info.history.forEach(h => {
-              const d = new Date(h.time);
-              allLabels.add(`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`);
-          });
-      });
-      const labels = Array.from(allLabels).sort();
-
-      const datasets = topItems.map(([name, info], idx) => {
-        const dataPoints = labels.map(label => {
-           const found = info.history.find(h => {
-              const d = new Date(h.time);
-              return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}` === label;
-           });
-           return found ? found.price : null;
-        });
-        return {
-          label: name, data: dataPoints,
-          borderColor: colors[idx], backgroundColor: colors[idx], borderWidth: 2, pointRadius: 3, tension: 0.3, spanGaps: true
-        };
-      });
-
-      blackMarketChart = new Chart(document.getElementById('blackMarketCanvas'), {
-        type: 'line', data: { labels, datasets },
-        options: {
-          responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
-          plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10, font: {size: 10} } } },
-          scales: { x: { ticks: { font: {size: 9} } }, y: { beginAtZero: false, ticks: { font: {size: 10} } } }
-        }
-      });
+      }
     } catch (e) {
       console.error(e);
-      document.getElementById('blackMarketChartWrap').innerHTML = '<div class="empty-state">오류 발생</div>';
+      const cardsWrap = document.getElementById('blackMarketCards');
+      if (cardsWrap) cardsWrap.innerHTML = '<div class="empty-state">오류 발생</div>';
     }
   }
 
