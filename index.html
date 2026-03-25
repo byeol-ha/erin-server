@@ -1746,8 +1746,6 @@
   // ==========================================
   async function loadBlackMarket() {
     const server = getServer();
-    async function loadBlackMarket() {
-    const server = getServer();
     try {
       const res = await fetch(`${API}/api/stats/blackmarket?server=${server}`);
       const data = await res.json();
@@ -1759,7 +1757,6 @@
       }
 
       cardsWrap.innerHTML = Object.entries(data).sort((a,b)=>b[1].count - a[1].count).map(([name, info]) => {
-        
         const isAllServer = getServer() === 'all';
         let serverAvgsHtml = '';
         if (isAllServer && info.serverAvgs) {
@@ -1804,7 +1801,9 @@
         </div>`;
       }).join('');
     } catch (e) {
-      document.getElementById('blackMarketCards').innerHTML = '<div class="empty-state">오류 발생</div>';
+      console.error(e);
+      const cardsWrap = document.getElementById('blackMarketCards');
+      if (cardsWrap) cardsWrap.innerHTML = '<div class="empty-state">오류 발생</div>';
     }
   }
 
@@ -2474,7 +2473,6 @@
   }, 120000);
 
   async function updateLobbyData() {
-    const server = getServer();async function updateLobbyData() {
     const server = getServer();
     
     fetch(`${API}/api/stats/keywords?server=${server}&days=1&category=all`)
