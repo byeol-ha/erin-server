@@ -493,87 +493,100 @@ app.get('/api/stats/lobby-weather', async (req, res) => {
 // ── 🏴‍☠️ 거불/특수 거래 (어둠의 거래소) API ──
 app.get('/api/stats/blackmarket', async (req, res) => {
   const server = req.query.server || 'all';
-  // 데이터가 적을 수 있으니 최근 3일치 스캔
   const since = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(); 
 
-  let query = `SELECT message, date_send FROM horn WHERE date_send >= $1`;
+  let query = `SELECT server_name, character_name, message, date_send FROM horn WHERE date_send >= $1`;
   const params = [since];
   if (server !== 'all') { params.push(server); query += ` AND server_name = $${params.length}`; }
 
   try {
     const result = await pool.query(query, params);
     
-    // 1. 트렌드 목록에 인형가방 추가
-        const trends = {
-          '브리 구슬': { prices: [] },
-          '인능상': { prices: [] },
-          '거불 인보포': { prices: [] },
-          '거불 시암': { prices: [] },
-          '수세공': { prices: [] },
-          '인형가방 (떨굼)': { prices: [] } // 🔥 추가 완료
-        };
+    // 🔥 작가님 요청: 붕마정, 크롬 장기 추가!
+    const trends = {
+      '브리 구슬': { prices: [] },
+      '붕마정': { prices: [] },
+      '크롬 장기': { prices: [] },
+      '인능상': { prices: [] },
+      '거불 인보포': { prices: [] },
+      '거불 시암': { prices: [] },
+      '수세공': { prices: [] },
+      '인형가방 (떨굼)': { prices: [] }
+    };
 
-        // 2. 스마트 가격 변환기: 0.5(억), 5천(만), 800(숲)을 모두 '숲' 단위로 통일
-        const parseSoop = (numStr, unit) => {
-          let num = parseFloat(numStr);
-          if (unit === '억') return num * 10000;
-          if (unit && unit.startsWith('천')) return num * 1000; // 5천 = 5000숲
-          if (unit === '만') return num; 
-          if (unit === '숲') return num;
-          
-          if (num < 20) return num * 10000; // 0.5, 1.2 등은 '억'으로 간주 (5000숲)
-          return num; // 800, 900 등은 '숲'으로 간주
-        };
+    const parseSoop = (numStr, unit) => {
+      let num = parseFloat(numStr);
+      if (unit === '억') return num * 10000;
+      if (unit && unit.startsWith('천')) return num * 1000;
+      if (unit === '만') return num; 
+      if (unit === '숲') return num;
+      if (num < 20) return num * 10000; 
+      return num; 
+    };
 
-        result.rows.forEach(r => {
-          // 띄어쓰기 무시
-          const msg = r.message.replace(/\s+/g, ''); 
-          const itemData = { time: r.date_send, character: r.character_name, message: r.message };
+    result.rows.forEach(r => {
+      const msg = r.message.replace(/\s+/g, ''); 
+      // 🔥 undefined 방지: 서버 이름(server_name)을 확실하게 챙겨줍니다.
+      const itemData = { time: r.date_send, character: r.character_name, server: r.server_name, message: r.message };
 
-          // 5대장 낚시 (소수점 지원)
-          const beadMatch = msg.match(/(뀨|구구|구슬구매|거불구슬)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/);
-          if (beadMatch) trends['브리 구슬'].prices.push({ ...itemData, price: parseSoop(beadMatch[2], beadMatch[3]) });
+      const beadMatch = msg.match(/(뀨|구구|구슬구매|거불구슬)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/);
+      if (beadMatch) trends['브리 구슬'].prices.push({ ...itemData, price: parseSoop(beadMatch[2], beadMatch[3]) });
 
-          const inMatch = msg.match(/(인능상|인챈트능력의상승스크롤)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/);
-          if (inMatch) trends['인능상'].prices.push({ ...itemData, price: parseSoop(inMatch[2], inMatch[3]) });
+      // 🔥 붕마정 낚시망
+      const bungMatch = msg.match(/(붕마정|붕괴된마력의정수)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/);
+      if (bungMatch) trends['붕마정'].prices.push({ ...itemData, price: parseSoop(bungMatch[2], bungMatch[3]) });
 
-          const inboMatch = msg.match(/(거불인보포|인보포거불)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/);
-          if (inboMatch) trends['거불 인보포'].prices.push({ ...itemData, price: parseSoop(inboMatch[2], inboMatch[3]) });
+      // 🔥 크롬 장기 낚시망 (아다만티움, 글기깃, 글기심 등)
+      const janggiMatch = msg.match(/(아다만|아다만티움|글기깃|글기심|글라스기브넨의깃털|글라스기브넨의심장|장기)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/);
+      if (janggiMatch) trends['크롬 장기'].prices.push({ ...itemData, price: parseSoop(janggiMatch[2], janggiMatch[3]) });
 
-          const siamMatch = msg.match(/(거불시암|시암거불)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/);
-          if (siamMatch) trends['거불 시암'].prices.push({ ...itemData, price: parseSoop(siamMatch[2], siamMatch[3]) });
+      const inMatch = msg.match(/(인능상|인챈트능력의상승스크롤)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/);
+      if (inMatch) trends['인능상'].prices.push({ ...itemData, price: parseSoop(inMatch[2], inMatch[3]) });
 
-          const suseMatch = msg.match(/(거불수세공|수세공)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/);
-          if (suseMatch) trends['수세공'].prices.push({ ...itemData, price: parseSoop(suseMatch[2], suseMatch[3]) });
+      const inboMatch = msg.match(/(거불인보포|인보포거불)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/);
+      if (inboMatch) trends['거불 인보포'].prices.push({ ...itemData, price: parseSoop(inboMatch[2], inboMatch[3]) });
 
-          // 🔥 작가님 피드백 완벽 적용! 인형가방 (떨굼식) 철벽 그물망
-          if (msg.includes('가방') && /떨굼|떨식|깐/.test(msg)) {
-            // [숫자] + [단위] + [에/으로] + [삼/팜 등 거래 동사] 구조만 낚아챔
-            const bagMatch = msg.match(/([0-9]*\.?[0-9]+)(억|천만?|숲|만)?(에|으로)?(팝니다|삽니다|판매|구매|팜|삼|팔아요|사요|구함|구해)/);
-            
-            if (bagMatch) {
-              let price = parseSoop(bagMatch[1], bagMatch[2]);
-              // 1채널 팜 등 엉뚱한 필터링 방지 (최소 100숲 ~ 5만숲)
-              if (price >= 100 && price <= 50000) {
-                trends['인형가방 (떨굼)'].prices.push({ ...itemData, price });
-              }
-            }
-          }
-        });
+      const siamMatch = msg.match(/(거불시암|시암거불)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/);
+      if (siamMatch) trends['거불 시암'].prices.push({ ...itemData, price: parseSoop(siamMatch[2], siamMatch[3]) });
+
+      const suseMatch = msg.match(/(거불수세공|수세공)([0-9]*\.?[0-9]+)(억|천만?|숲|만)?/);
+      if (suseMatch) trends['수세공'].prices.push({ ...itemData, price: parseSoop(suseMatch[2], suseMatch[3]) });
+
+      if (msg.includes('가방') && /떨굼|떨식|깐/.test(msg)) {
+        const bagMatch = msg.match(/([0-9]*\.?[0-9]+)(억|천만?|숲|만)?(에|으로)?(팝니다|삽니다|판매|구매|팜|삼|팔아요|사요|구함|구해)/);
+        if (bagMatch) {
+          let price = parseSoop(bagMatch[1], bagMatch[2]);
+          if (price >= 100 && price <= 50000) trends['인형가방 (떨굼)'].prices.push({ ...itemData, price });
+        }
+      }
+    });
 
     const summary = {};
     for (const [item, data] of Object.entries(trends)) {
       if (data.prices.length > 0) {
-        // 비정상적으로 높거나 낮은 가격(묶음 판매 등) 대충 걸러내기 (10000 초과 컷)
-        const validPrices = data.prices.filter(p => p.price > 0 && p.price < 10000);
+        // 비정상 가격 필터링 (10숲 ~ 10만숲)
+        const validPrices = data.prices.filter(p => p.price >= 10 && p.price <= 100000);
         if (validPrices.length > 0) {
-          // 시간순 정렬
           validPrices.sort((a,b) => new Date(a.time) - new Date(b.time));
-          // 최근 평균가 계산 (마지막 5개 기준)
-          const recent = validPrices.slice(-5);
+          
+          // 🔥 서버별 평균 계산 로직
+          const serverStats = {};
+          validPrices.forEach(p => {
+            if (!serverStats[p.server]) serverStats[p.server] = { sum: 0, count: 0 };
+            serverStats[p.server].sum += p.price;
+            serverStats[p.server].count++;
+          });
+          
+          const serverAvgs = {};
+          for (const [srv, stat] of Object.entries(serverStats)) {
+            serverAvgs[srv] = Math.round(stat.sum / stat.count);
+          }
+
+          const recent = validPrices.slice(-10); // 최근 10개 기준으로 대표 평균 산출
           const avg = Math.round(recent.reduce((a, b) => a + b.price, 0) / recent.length);
           
-          summary[item] = { avg, count: validPrices.length, history: validPrices };
+          // history 데이터에 최신순 정렬을 위해 reverse 적용해서 보냄
+          summary[item] = { avg, count: validPrices.length, serverAvgs, history: validPrices.reverse() };
         }
       }
     }
