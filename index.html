@@ -1503,6 +1503,17 @@
   let hourChart = null, donutChart = null, lineChart = null;
   let marketData = [];
 
+  function selectServer(server) {
+    document.getElementById('globalServer').value = server;
+    document.getElementById('landingOverlay').classList.add('hidden');
+    
+    updateLobbyData();
+
+    if (feedInterval) clearInterval(feedInterval);
+    if (typeof clearFeed === 'function') clearFeed();
+    startFeed();
+  }
+
   Chart.defaults.color = '#8891aa';
   Chart.defaults.font = { family: 'JetBrains Mono, Noto Sans KR, sans-serif', size: 11 };
 
