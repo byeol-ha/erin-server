@@ -477,7 +477,7 @@
 
     .summary-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 12px;
       margin-bottom: 20px;
     }
@@ -1388,7 +1388,7 @@
     </div>
 
     <div class="nav-right" style="display: flex; align-items: center; gap: 12px;">
-      <div style="display: flex; align-items: center; gap: 8px;">
+      <div title="스위치를 켜두면, 다른 탭을 보고 있어도 파티 모집 거뿔이 뜰 때 소리로 알려줍니다!" style="display: flex; align-items: center; gap: 8px;">
         <span style="font-size: 13px; color: var(--text2); font-weight: 700; cursor: pointer; white-space:nowrap;" onclick="document.getElementById('ttsToggle').click()">🔊 음성 알림</span>
         <label style="position: relative; display: inline-block; width: 36px; height: 20px; flex-shrink:0;">
           <input type="checkbox" id="ttsToggle" onchange="toggleTts()" style="opacity: 0; width: 0; height: 0;">
@@ -1523,11 +1523,6 @@
       </div>
     </div>
     <div class="summary-grid">
-      <div class="card c-gold">
-        <div class="card-label">총 누적</div>
-        <div class="card-num" id="totalMsg">—</div>
-        <div class="card-desc">전체 뿔피리</div>
-      </div>
       <div class="card c-blue">
         <div class="card-label">오늘</div>
         <div class="card-num" id="todayMsg">—</div>
@@ -1692,6 +1687,29 @@
     return price.toLocaleString() + (unit || '');
   }
 
+  // 🎵 MP3 없이 브라우저에서 '띠링~' 효과음 만들기
+  function playBeepSound() {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const audioCtx = new AudioContext();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      oscillator.type = 'sine'; // 부드러운 물방울 소리 톤
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
+      oscillator.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1); 
+
+      gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime); // 볼륨 30%
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1); // 페이드아웃
+
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + 0.1);
+    } catch (e) { console.log("효과음 재생 불가"); }
+  }
+
   let isTtsEnabled = false;
   const API = 'https://erin-server-production.up.railway.app';
   let feedInterval = null;
@@ -1790,29 +1808,17 @@ function toggleTts() {
     isTtsEnabled = isEnabled; 
 
     if (isEnabled) {
+      // 🔊 스위치 켜는 맑고 고운 '띠링~' 소리 재생!
+      playBeepSound();
+      
+      // 혹시 브라우저가 "너 소리 권한 안 받아!" 하고 막을까 봐, 투명한 목소리(볼륨 0)를 한 번 내서 꼼수로 권한을 뚫어줍니다.
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel(); 
-        
-        // 💖 멘트 변경 & 헬륨가스 효과 투입!
-        const testMsg = new SpeechSynthesisUtterance("파티 알림을 켤게요! 뾰로롱!"); 
-        testMsg.lang = 'ko-KR';
-        testMsg.volume = 1;
-        testMsg.rate = 1.2;  // 말하는 속도 (살짝 빠르게)
-        testMsg.pitch = 1.6; // ⭐️ 핵심: 목소리 톤을 높여서 요정 목소리처럼 만듦 (0~2 사이)
-        window.speechSynthesis.speak(testMsg);
+        const silentMsg = new SpeechSynthesisUtterance(""); 
+        silentMsg.volume = 0; 
+        window.speechSynthesis.speak(silentMsg);
       }
-      
-      // 2. 혹시 mp3 파일(띠링~ 소리)을 쓰신다면 그것도 잠금 해제
-      const audioTag = document.querySelector('audio'); 
-      if (audioTag) {
-        audioTag.muted = true; // 일단 꼼수로 무음 처리하고
-        audioTag.play().then(() => {
-          audioTag.muted = false; // 락이 풀리면 다시 소리 켬!
-        }).catch(e => console.log("오디오 대기 중..."));
-      }
-      
     } else {
-      // 알림 스위치를 껐을 때: 지금 당장 떠들고 있는 것도 입을 틀어막음
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel(); 
       }
