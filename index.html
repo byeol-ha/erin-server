@@ -2058,6 +2058,20 @@ function toggleTts() {
       const metaEl = document.getElementById('feedMeta');
       if (metaEl) metaEl.innerHTML = `총 <span>${feed.querySelectorAll('.feed-item').length}</span>개 표시 중`;
 
+      // 🚨 [추가] 로비 화면의 "방금 올라온 거뿔" 3개도 실시간으로 동기화 쏴주기! 🚨
+      if (!isLoadMore) {
+        const lobbyFeed = document.getElementById('lobbyFeed');
+        if (lobbyFeed) {
+          const top3 = Array.from(feed.querySelectorAll('.feed-item')).slice(0, 3);
+          if (top3.length > 0) {
+            lobbyFeed.innerHTML = top3.map(el => el.outerHTML).join('');
+          }
+        }
+        
+        // 💡 F12 개발자 도구에서 23초마다 진짜로 엔진이 도는지 눈으로 확인하는 로그!
+        console.log(`[${new Date().toLocaleTimeString()}] 📯 거뿔 실시간 엔진 가동 완료! (새로 가져온 데이터 갱신)`);
+      }
+
     } catch (e) {
       console.error("피드 로딩 에러:", e);
       setGlobalStatus('error', '서버 오류');
