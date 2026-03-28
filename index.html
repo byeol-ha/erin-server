@@ -1786,22 +1786,34 @@
   }
 
 function toggleTts() {
-    isTtsEnabled = document.getElementById('ttsToggle').checked;
+    const isEnabled = document.getElementById('ttsToggle').checked;
     
-    // 스위치를 켰을 때만 귀여운 소리 재생!
-    if (isTtsEnabled) {
-      // 1. 구글에서 기본으로 제공하는 작고 경쾌한 '뾱!' 소리 (일단 이걸로 테스트해 보세요!)
-      const audio = new Audio('https://actions.google.com/sounds/v1/ui/pop.ogg'); 
+    if (isEnabled) {
+      // 1. TTS (텍스트 읽어주기) 엔진 멱살 잡고 깨우기
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel(); // 기존에 에러나서 엉켜있는 목소리들 싹 다 초기화! (핵심⭐)
+        
+        // "나 켜졌어!" 하고 아주 짧게 말하게 해서 브라우저에게 '사용자가 직접 실행함'을 완벽하게 증명함
+        const testMsg = new SpeechSynthesisUtterance("알림 온");
+        testMsg.volume = 1;
+        testMsg.rate = 1.5; // 빠르게 휙 말하고 빠지기
+        window.speechSynthesis.speak(testMsg);
+      }
       
-      /* 
-      💡 나중에 맘에 드는 예쁜 소리를 구하시면 아래처럼 바꾸시면 됩니다!
-      마비옛체 폰트 넣으셨던 것처럼, 귀여운 소리를 다운받아 ding.mp3 로 저장한 뒤 
-      const audio = new Audio('./ding.mp3'); 
-      이렇게 경로만 쏙 바꿔주시면 끝이에요! 
-      */
-
-      audio.volume = 0.4; // 소리가 너무 크면 깜짝 놀라니까 40% 볼륨으로 조절
-      audio.play().catch(e => console.log("소리 재생을 브라우저가 막았습니다."));
+      // 2. 혹시 mp3 파일(띠링~ 소리)을 쓰신다면 그것도 잠금 해제
+      const audioTag = document.querySelector('audio'); 
+      if (audioTag) {
+        audioTag.muted = true; // 일단 꼼수로 무음 처리하고
+        audioTag.play().then(() => {
+          audioTag.muted = false; // 락이 풀리면 다시 소리 켬!
+        }).catch(e => console.log("오디오 대기 중..."));
+      }
+      
+    } else {
+      // 알림 스위치를 껐을 때: 지금 당장 떠들고 있는 것도 입을 틀어막음
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel(); 
+      }
     }
   }
 
