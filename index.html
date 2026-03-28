@@ -1787,17 +1787,18 @@
 
 function toggleTts() {
     const isEnabled = document.getElementById('ttsToggle').checked;
-    isTtsEnabled = isEnabled;
-    
+    isTtsEnabled = isEnabled; 
+
     if (isEnabled) {
-      // 1. TTS (텍스트 읽어주기) 엔진 멱살 잡고 깨우기
       if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel(); // 기존에 에러나서 엉켜있는 목소리들 싹 다 초기화! (핵심⭐)
+        window.speechSynthesis.cancel(); 
         
-        // "나 켜졌어!" 하고 아주 짧게 말하게 해서 브라우저에게 '사용자가 직접 실행함'을 완벽하게 증명함
-        const testMsg = new SpeechSynthesisUtterance("알림 온");
+        // 💖 멘트 변경 & 헬륨가스 효과 투입!
+        const testMsg = new SpeechSynthesisUtterance("파티 알림을 켤게요! 뾰로롱!"); 
+        testMsg.lang = 'ko-KR';
         testMsg.volume = 1;
-        testMsg.rate = 1.5; // 빠르게 휙 말하고 빠지기
+        testMsg.rate = 1.2;  // 말하는 속도 (살짝 빠르게)
+        testMsg.pitch = 1.6; // ⭐️ 핵심: 목소리 톤을 높여서 요정 목소리처럼 만듦 (0~2 사이)
         window.speechSynthesis.speak(testMsg);
       }
       
@@ -1979,10 +1980,11 @@ function toggleTts() {
 
   // 4. TTS (토글 스위치가 켜져 있을 때만 읽음!)
   if (isTtsEnabled && 'speechSynthesis' in window) {
-    const speechText = dungeon ? `${item.character_name}님이 ${dungeon} 파티를 모집합니다.` : `${item.character_name}님이 파티를 모집합니다.`;
+    const speechText = dungeon ? `${item.character_name}님이 ${dungeon} 파티를 모집해용.` : `${item.character_name}님이 파티를 모집해용.`;
     const speech = new SpeechSynthesisUtterance(speechText);
     speech.lang = 'ko-KR';
-    speech.rate = 1.15;
+    speech.rate = 1.2;   // 살짝 통통 튀게 빠른 속도
+    speech.pitch = 1.6;  // ⭐️ 여기서도 헬륨가스 투입!
     window.speechSynthesis.speak(speech);
   }
 }
