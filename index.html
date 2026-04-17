@@ -1326,94 +1326,104 @@
       font-weight: 900 !important;
     }
 
-    /* ── 풀페이지 스크롤 (테마 변수 연동형) ── */
-    .landing-overlay {
-      display: block !important;
-      overflow-y: auto;
-      overflow-x: hidden;
-      scroll-snap-type: y mandatory;
-      scroll-behavior: smooth;
-      background: var(--bg); /* 현재 테마 배경색 자동 적용 */
-    }
+    /* ── 풀페이지 스크롤 & 테마 연동 ── */
+.landing-overlay {
+    display: block !important;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+    background: var(--bg);
+}
 
-    .landing-section {
-      position: relative;
-      height: 100vh;
-      width: 100%;
-      scroll-snap-align: start;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 0 20px;
-    }
+.landing-section {
+    position: relative;
+    height: 100vh;
+    width: 100%;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
+    overflow: hidden;
+}
 
-    /* ── 강조 뱃지 & 타이틀 (테마 변수 활용) ── */
-    .intro-badge {
-      display: inline-block;
-      padding: 6px 16px;
-      border-radius: 20px;
-      background: rgba(var(--gold-rgb, 244, 162, 97), 0.1);
-      color: var(--gold);
-      border: 1px solid var(--gold);
-      font-size: 13px;
-      font-weight: 700;
-      font-family: 'JetBrains Mono', monospace;
-      margin-bottom: 24px;
-    }
+/* ── 타이틀 & 텍스트 디자인 ── */
+.intro-badge {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 20px;
+    background: rgba(var(--gold-rgb, 244, 162, 97), 0.1);
+    color: var(--gold);
+    border: 1px solid var(--gold);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 24px;
+}
 
-    .intro-title {
-      font-size: 48px;
-      font-weight: 900;
-      line-height: 1.25;
-      letter-spacing: -0.04em;
-      margin-bottom: 24px;
-      color: var(--text);
-      text-align: center;
-    }
-    
-    .intro-title span { 
-      color: var(--gold); 
-      position: relative;
-    }
+.intro-title {
+    font-size: clamp(32px, 5vw, 48px);
+    font-weight: 900;
+    line-height: 1.2;
+    letter-spacing: -0.04em;
+    margin-bottom: 20px;
+    color: var(--text);
+    text-align: center;
+}
 
-    /* 강조 텍스트 밑줄 효과 */
-    .intro-title span::after {
-      content: '';
-      position: absolute;
-      bottom: 4px; left: 0; right: 0;
-      height: 8px;
-      background: var(--gold);
-      opacity: 0.2;
-      z-index: -1;
-    }
+.intro-title span { color: var(--gold); }
 
-    .intro-desc {
-      font-size: 19px;
-      color: var(--text2);
-      line-height: 1.7;
-      max-width: 650px;
-      margin: 0 auto;
-      word-break: keep-all;
-      text-align: center;
-    }
+.intro-desc {
+    font-size: clamp(15px, 2vw, 18px);
+    color: var(--text2);
+    line-height: 1.7;
+    max-width: 700px;
+    margin: 0 auto;
+    word-break: keep-all;
+    text-align: center;
+}
 
-    /* ── 애니메이션 ── */
-    .reveal {
-      opacity: 0;
-      transform: translateY(30px);
-      transition: all 0.8s cubic-bezier(0.2, 1, 0.3, 1);
-    }
-    .reveal.active {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    .delay-1 { transition-delay: 0.15s; }
-    .delay-2 { transition-delay: 0.3s; }
+/* ── AI 분석 카드 목업 (이미지 대신 HTML/CSS로 구현) ── */
+.mockup-card {
+    margin-top: 40px;
+    width: 100%;
+    max-width: 400px;
+    background: var(--surface);
+    border: 1px solid var(--gold);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 0 30px rgba(var(--gold-rgb, 244, 162, 97), 0.2);
+    transform: rotate(2deg);
+}
 
-    /* 마우스 아이콘 테마 연동 */
-    .mouse-icon { border-color: var(--border2); }
-    .mouse-icon::before { background: var(--gold); }
+/* ── 애니메이션 (Reveal 효과) ── */
+.reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.8s cubic-bezier(0.2, 1, 0.3, 1);
+}
+.reveal.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+.delay-1 { transition-delay: 0.1s; }
+.delay-2 { transition-delay: 0.2s; }
+
+/* 스크롤 유도 아이콘 */
+.mouse-icon {
+    width: 24px; height: 38px;
+    border: 2px solid var(--border2);
+    border-radius: 12px;
+    position: absolute; bottom: 30px;
+}
+.mouse-icon::before {
+    content: ''; position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    width: 4px; height: 8px; background: var(--gold); border-radius: 2px;
+    animation: scrollMove 2s infinite;
+}
+@keyframes scrollMove { 0% { top: 8px; opacity: 1; } 100% { top: 20px; opacity: 0; } }
   </style>
 </head>
 <body>
@@ -1428,11 +1438,25 @@
         <div class="landing-title">지금 에린에서는</div>
       </div>
       <div class="landing-sub">~ 거대한 외침의 뿔피리 실시간 분석 ~</div>
+      
+      <div class="landing-question">어느 서버를 플레이하시나요?</div>
       <div class="server-btn-grid">
+        <div class="server-btn" onclick="selectServer('류트')">
+          <div class="server-btn-name">류트</div><div class="server-btn-desc">Lute</div><div id="king-류트" class="server-btn-king"></div>
         </div>
+        <div class="server-btn" onclick="selectServer('만돌린')">
+          <div class="server-btn-name">만돌린</div><div class="server-btn-desc">Mandolin</div><div id="king-만돌린" class="server-btn-king"></div>
+        </div>
+        <div class="server-btn" onclick="selectServer('하프')">
+          <div class="server-btn-name">하프</div><div class="server-btn-desc">Harp</div><div id="king-하프" class="server-btn-king"></div>
+        </div>
+        <div class="server-btn" onclick="selectServer('울프')">
+          <div class="server-btn-name">울프</div><div class="server-btn-desc">Wolf</div><div id="king-울프" class="server-btn-king"></div>
+        </div>
+      </div>
       <button class="landing-all-btn" onclick="selectServer('all')">전체 서버 보기</button>
     </div>
-    <div class="scroll-indicator"><div class="mouse-icon"></div></div>
+    <div class="mouse-icon"></div>
   </section>
 
   <section class="landing-section">
@@ -1440,8 +1464,13 @@
       <div class="intro-badge reveal">01. AI Profiling</div>
       <div class="intro-title reveal delay-1">데이터로 꿰뚫어 보는<br><span>밀레시안의 정체</span></div>
       <div class="intro-desc reveal delay-2">
-        최근 거뿔 데이터를 고인물 AI가 분석하여 독보적인 칭호와 키워드를 부여합니다.<br>
-        나와 비슷한 패턴을 가진 운명의 유저를 실시간으로 매칭해 보세요.
+        거뿔 속에 숨겨진 당신의 플레이 스타일을 AI가 완벽하게 분석합니다.<br>
+        나와 100% 일치하는 '운명의 유저'를 찾아보세요.
+      </div>
+      <div class="mockup-card reveal delay-2">
+        <div style="color:var(--gold); font-weight:900; margin-bottom:10px;">👤 분석 결과: 별하</div>
+        <div style="font-size:18px; color:var(--text); margin-bottom:8px;">「 기만형 브리 레흐 공장장 」</div>
+        <div style="font-size:13px; color:var(--text2);">"뉴비라고 주장하지만 인벤토리에는 파멸의 로브가 가득하군요..."</div>
       </div>
     </div>
   </section>
@@ -1449,23 +1478,12 @@
   <section class="landing-section">
     <div class="landing-content">
       <div class="intro-badge reveal">02. Trend Analysis</div>
-      <div class="intro-title reveal delay-1">에린의 오늘을 여는<br><span>실시간 키워드 클라우드</span></div>
+      <div class="intro-title reveal delay-1">지금 에린에서<br><span>가장 뜨거운 이야기</span></div>
       <div class="intro-desc reveal delay-2">
-        지금 이 순간, 밀레시안들이 가장 많이 외치는 단어는 무엇일까요?<br>
-        급상승 키워드를 통해 오늘의 사냥 트렌드와 길드 소식을 놓치지 마세요.
+        실시간으로 수집되는 키워드 클라우드를 통해<br>
+        오늘의 사냥 메타와 아이템 시세의 흐름을 한눈에 파악하세요.
       </div>
-    </div>
-  </section>
-
-  <section class="landing-section">
-    <div class="landing-content">
-      <div class="intro-badge reveal">03. Utility Tools</div>
-      <div class="intro-title reveal delay-1">더 쾌적한 플레이를 위한<br><span>거래 & 파티 알림</span></div>
-      <div class="intro-desc reveal delay-2">
-        어둠의 거래소 시세 확인부터 파티 모집 알림까지.<br>
-        중요한 소식만 쏙쏙 골라 알려주는 기상캐스터가 되어 드립니다.
-      </div>
-      <button class="btn btn-primary reveal delay-2" style="margin-top: 40px; padding: 14px 40px; border-radius: 30px;" onclick="document.getElementById('landingOverlay').scrollTo({top:0, behavior:'smooth'})">에린으로 입장하기 🛡️</button>
+      <button class="btn btn-primary reveal delay-2" style="margin-top: 40px; padding: 16px 40px; border-radius: 30px; font-size: 16px;" onclick="document.getElementById('landingOverlay').scrollTo({top:0, behavior:'smooth'})">위로 올라가서 시작하기 🛡️</button>
     </div>
   </section>
 
