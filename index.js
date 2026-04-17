@@ -61,7 +61,7 @@ async function initDB() {
     CREATE INDEX IF NOT EXISTS idx_category ON horn(category);
     CREATE INDEX IF NOT EXISTS idx_server ON horn(server_name);
     
-    -- 🔥 기획자님 수동 실행 필요 없이 여기서 알아서 만듭니다!
+    -- 🔥 누락되었던 AI 분석 저장소 자동 생성! 🔥
     CREATE TABLE IF NOT EXISTS user_analysis (
       character_name TEXT PRIMARY KEY,
       keywords TEXT[], 
@@ -828,21 +828,21 @@ app.get('/api/user/:name/analyze', async (req, res) => {
       return `[${new Date(r.date_send).getHours()}시] ${r.message}`;
     }).join('\n');
 
-    const prompt = `유저 "${name}"의 마비노기 거뿔 분석. 다음 JSON 데이터 구조로만 답변해: { "type": "칭호", "description": "분석", "keywords": ["키워드1",...,"키워드10"], "activeTime": "시간", "mainActivity": "활동" }\n\n데이터:\n${messages}`;
-
-    // 🛡️ 핵심: 제미니에게 "무조건 JSON으로만 줘!" 라고 강제 설정 (마크다운 텍스트 원천 차단)
+    // 🛡️ 핵심: 제미니에게 "무조건 JSON으로만 줘!" 라고 강제 설정
     const model = genAI.getGenerativeModel({ 
       model: 'gemini-2.5-flash',
       generationConfig: { responseMimeType: "application/json" } 
     });
 
+    const prompt = `유저 "${name}"의 마비노기 거뿔 분석. 다음 JSON 형식으로만 답변해: { "type": "칭호", "description": "분석", "keywords": ["키워드1",...,"키워드10"], "activeTime": "시간", "mainActivity": "활동" }\n\n데이터:\n${messages}`;
+
     const aiResponse = await model.generateContent(prompt);
     const rawText = aiResponse.response.text();
     
-    // 이제 정규식 없이 바로 JSON 변환해도 절대 안 터집니다.
+    // 정규식 없이 바로 파싱!
     const analysis = JSON.parse(rawText);
 
-    // DB 저장
+    // 💾 DB에 저장
     await pool.query(`
       INSERT INTO user_analysis (character_name, keywords, analysis_json, updated_at)
       VALUES ($1, $2, $3, NOW())
@@ -851,7 +851,6 @@ app.get('/api/user/:name/analyze', async (req, res) => {
 
     res.json({ found: true, name, analysis });
   } catch (e) {
-    // 🚨 여기서 남긴 다잉 메시지가 Railway 로그에 찍힙니다!
     console.error(`[AI 분석 오류 - ${name}]`, e.message);
     res.status(500).json({ error: e.message });
   }
