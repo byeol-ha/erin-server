@@ -1120,7 +1120,30 @@ app.get('/api/admin/start-safe', async (req, res) => {
         await new Promise(resolve => setTimeout(resolve, 2000));
 
       } catch (err) {
-        console.error(`💥 [API 삑사리 - 2초 뒤 다음 사람 진행]`, err.message);
+        console.error(`💥 [${currentName || '알수없음'} 분석 차단됨 - 구글 오작동]`, err.message);
+        
+        // 🚨 도대체 무슨 평범한 문장 때문에 차단됐는지 Railway 로그에 원본을 찍어봅니다!
+        console.log(`[구글이 차단한 거뿔 원본]\n${messages}\n--------------------`);
+
+        // 🔥 무한루프 탈출: 에러가 나면 '분석 보류' 라고 DB에 박아서 다음 사람으로 넘어가게 함!
+        const fallbackAnalysis = {
+          type: "분석 보류 (AI 오작동)",
+          description: "거뿔 내용에 카카오톡 아이디 등 외부 연락처가 포함되어 있거나, 구글 AI가 문맥을 오해하여 분석을 일시 보류했습니다.",
+          keywords: ["#분석보류", "#AI오작동", "#데이터확인필요", "#서버평화로움"],
+          activeTime: "알 수 없음",
+          mainActivity: "알 수 없음"
+        };
+
+        try {
+          if (currentName) {
+            await pool.query(`
+              INSERT INTO user_analysis (character_name, keywords, analysis_json, updated_at)
+              VALUES ($1, $2, $3, NOW())
+              ON CONFLICT (character_name) DO NOTHING
+            `, [currentName, fallbackAnalysis.keywords, fallbackAnalysis]);
+          }
+        } catch(e) {}
+
         await new Promise(resolve => setTimeout(resolve, 2000)); 
       }
     }
