@@ -26,7 +26,7 @@
       
       --gold: #f4a261;
       --gold2: #e76f51;
-      --blue: #ff6b8b;    /* 쨍하고 화사한 찐 로즈 핑크 포인트! (버튼 색상 등) */
+      --blue: #4facfe;    /* 쨍하고 화사한 찐 로즈 핑크 포인트! (버튼 색상 등) */
       --teal: #2a9d8f;
       --purple: #cdb4db;
       --red: #ff4d6d;
@@ -118,9 +118,9 @@
 .market-price { font-size: 20px; font-weight: 900; font-family: 'JetBrains Mono', monospace; }
 .market-action { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; margin-top: 4px; }
 .action-sell .market-price { color: var(--blue); }
-.action-sell .market-action { background: rgba(37,99,235,0.1); color: var(--blue); }
+.action-sell .market-action { background: rgba(var(--blue-rgb, 59, 130, 246), 0.15); color: var(--blue); }
 .action-buy .market-price { color: var(--red); }
-.action-buy .market-action { background: rgba(220,38,38,0.1); color: var(--red); }
+.action-buy .market-action { background: rgba(var(--red-rgb, 239, 68, 68), 0.15); color: var(--red); }
 
 /* ── 툴팁 애니메이션 및 스타일 ── */
 .market-original { 
