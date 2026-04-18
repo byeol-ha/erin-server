@@ -894,6 +894,44 @@ app.get('/api/user/:name/similar', async (req, res) => {
   }
 });
 
+// 📊 [대시보드용] 에린 데이터 수집 및 AI 분석 현황 API
+app.get('/api/stats/progress', async (req, res) => {
+  try {
+    // 1. 서버별로 '거뿔을 분 유저'가 몇 명인지 센다 (중복 닉네임 제거)
+    const serverUsersRes = await pool.query(`
+      SELECT server_name, COUNT(DISTINCT character_name) as user_count
+      FROM horn
+      GROUP BY server_name
+    `);
+    
+    const serverUsers = { '류트': 0, '만돌린': 0, '하프': 0, '울프': 0 };
+    let totalHornUsers = 0;
+    
+    serverUsersRes.rows.forEach(r => {
+      const count = parseInt(r.user_count);
+      serverUsers[r.server_name] = count;
+      totalHornUsers += count;
+    });
+
+    // 2. AI 분석이 완료된 유저가 총 몇 명인지 센다
+    const analyzedRes = await pool.query('SELECT COUNT(*) as count FROM user_analysis');
+    const analyzedCount = parseInt(analyzedRes.rows[0].count);
+
+    // 3. 예쁘게 포장해서 프론트엔드로 전달!
+    res.json({
+      total_horn_users: totalHornUsers,     
+      server_users: serverUsers,            
+      analyzed_total: analyzedCount         
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 👇 이 아래에 기존의 start-safe 코드가 오면 완벽합니다!
+// app.get('/api/admin/start-safe', async (req, res) => { ...
+
+
 // 🚨 [과금 방어 + 중복 완벽 차단] 릴레이 바통 터치 방식!
 let isRunning = false;
 let stopRequested = false;
