@@ -1045,6 +1045,8 @@ app.get('/api/admin/start-safe', async (req, res) => {
   // 🔥 백그라운드 무한 분석 루프
   (async () => {
     while (currentProcessedCount < currentTargetLimit && !stopRequested) {
+      let targetName = "알수없음"; // 💡 에러가 났을 때(catch)도 이름을 기억할 수 있게 바깥으로 뺐습니다!
+
       try {
         const target = await pool.query(`
           SELECT character_name 
@@ -1060,35 +1062,25 @@ app.get('/api/admin/start-safe', async (req, res) => {
           break;
         }
 
-        const name = target.rows[0].character_name;
-        const userMsgRes = await pool.query(`SELECT message FROM horn WHERE character_name = $1 ORDER BY date_send DESC LIMIT 50`, [name]);
+        // 💡 밖에서 만든 이름표에 진짜 닉네임 적기
+        targetName = target.rows[0].character_name;
+        
+        const userMsgRes = await pool.query(`SELECT message FROM horn WHERE character_name = $1 ORDER BY date_send DESC LIMIT 50`, [targetName]);
         const messages = userMsgRes.rows.map(r => r.message).join('\n');
 
+        // 🔥 AI가 쫄지 않도록 필터링 전면 해제 옵션
         const model = genAI.getGenerativeModel({ 
-          model: 'gemini-2.5-flash',
+          model: 'gemini-2.5-flash', 
           generationConfig: { responseMimeType: "application/json" },
           safetySettings: [
-            {
-              category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-              threshold: HarmBlockThreshold.BLOCK_NONE,
-            },
-            {
-              category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-              threshold: HarmBlockThreshold.BLOCK_NONE,
-            },
-            {
-              category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-              threshold: HarmBlockThreshold.BLOCK_NONE,
-            },
-            {
-              category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-              threshold: HarmBlockThreshold.BLOCK_NONE,
-            },
+            { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
           ]
         });
         
-        // 👇 여기도 백틱 완벽 보호!
-        const prompt = `너는 마비노기 유저 프로파일러야. 아래 유저 "${name}"의 거뿔 데이터를 분석해서 반드시 JSON 형식으로만 답변해.
+        const prompt = `너는 마비노기 유저 프로파일러야. 아래 유저 "${targetName}"의 거뿔 데이터를 분석해서 반드시 JSON 형식으로만 답변해.
 
         [JSON 요구사항]
         1. "type": 유저의 성향을 나타내는 재미있는 칭호 (절대 '칭호'라는 단어 쓰지 말 것. 예: 낭만 가득한 요정)
@@ -1112,35 +1104,33 @@ app.get('/api/admin/start-safe', async (req, res) => {
           VALUES ($1, $2, $3, NOW())
           ON CONFLICT (character_name) DO UPDATE 
           SET keywords = EXCLUDED.keywords, analysis_json = EXCLUDED.analysis_json, updated_at = NOW()
-        `, [name, analysis.keywords, analysis]);
+        `, [targetName, analysis.keywords, analysis]);
         
         currentProcessedCount++;
-        console.log(`🛡️ [안전 모드: ${currentProcessedCount}/${currentTargetLimit}] ${name} 분석 완료!`);
+        console.log(`🛡️ [안전 모드: ${currentProcessedCount}/${currentTargetLimit}] ${targetName} 분석 완료!`);
 
         await new Promise(resolve => setTimeout(resolve, 2000));
 
       } catch (err) {
-        console.error(`💥 [${currentName || '알수없음'} 분석 차단됨 - 구글 오작동]`, err.message);
+        // 💡 밖으로 빼둔 targetName 덕분에 여기서도 닉네임을 부를 수 있습니다!
+        console.error(`💥 [${targetName} 분석 차단됨 - 구글 오작동]`, err.message);
         
-        // 🚨 도대체 무슨 평범한 문장 때문에 차단됐는지 Railway 로그에 원본을 찍어봅니다!
-        console.log(`[구글이 차단한 거뿔 원본]\n${messages}\n--------------------`);
-
         // 🔥 무한루프 탈출: 에러가 나면 '분석 보류' 라고 DB에 박아서 다음 사람으로 넘어가게 함!
         const fallbackAnalysis = {
           type: "분석 보류 (AI 오작동)",
-          description: "거뿔 내용에 카카오톡 아이디 등 외부 연락처가 포함되어 있거나, 구글 AI가 문맥을 오해하여 분석을 일시 보류했습니다.",
+          description: "거뿔 내용에 외부 연락처가 포함되어 있거나, 구글 AI가 문맥을 오해하여 분석을 일시 보류했습니다.",
           keywords: ["#분석보류", "#AI오작동", "#데이터확인필요", "#서버평화로움"],
           activeTime: "알 수 없음",
           mainActivity: "알 수 없음"
         };
 
         try {
-          if (currentName) {
+          if (targetName && targetName !== "알수없음") {
             await pool.query(`
               INSERT INTO user_analysis (character_name, keywords, analysis_json, updated_at)
               VALUES ($1, $2, $3, NOW())
               ON CONFLICT (character_name) DO NOTHING
-            `, [currentName, fallbackAnalysis.keywords, fallbackAnalysis]);
+            `, [targetName, fallbackAnalysis.keywords, fallbackAnalysis]);
           }
         } catch(e) {}
 
